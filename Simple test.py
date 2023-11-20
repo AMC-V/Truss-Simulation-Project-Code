@@ -310,6 +310,6 @@ text_1 = vp.wtext(text = "Blue elements mean in compression\n")
 
 text_2 = vp.wtext(text = "Red elements mean in tension")
 
-vp.sleep(5000)
+vp.sleep(5000) # testing
 
 sys.exit(0)
