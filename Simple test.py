@@ -3,7 +3,7 @@ import vpython as vp
 import numpy as np
 import sys 
 # endregion
-
+#=================================================================
 # region method overloads for convenions
 def arrow(**kid):
     return vp.arrow(pos = kid["pos"], axis = kid["axis"], round = True)
@@ -50,7 +50,7 @@ def hat(number):
 def sqrt(number):
     return vp.sqrt(number)
 # endregion
-
+#=================================================================
 # region Gobal Coordiante System 
 origin = vec(0, 0, 0)
 axis = vp.sphere(pos = origin, radius = 5)  # Here radius is length of axis
@@ -109,40 +109,69 @@ neg_z_axis.opacity = op
 neg_z_axis_label = vp.label(pos = neg_z_axis.pos + neg_z_axis.axis + vec(0, -axis.toffset, 0), 
          text='-z', height = 16, border = 4,font = axis.f, line = False, opacity = 0, box = False)
 # endregion
+#=================================================================
+# region Node method
+def node_creation(x, y, number_of_current_node):
+    sphere(pos = vec(x, y, 0))
+    vp.label(pos = vec(x, y, 0), text = f"{number_of_current_node +1}", xoffset = 5, yoffset = 10, space = 1, 
+             height = 16, border = 4, font = 'monospace', box = False, opacity = 0, color = 1/255 * vec(255,150,0))
+    return vec(x, y, 0)
+# endregion
+#=================================================================
+# region Node Loop
+number_of_nodes = 0
 
 list_of_nodes = [] # Will contain all nodes, examples 3 nodes
 list_of_elements = [] # Will contain all the elements, connections between nodes, also the number of unknowns
-reaction_forces = [] # Will contain pin and roller support
+list_of_unknowns = [] # based on the amount of memebers
 
-number_of_nodes = int(input("Enter number of nodes\n")) # Ask for number of nodes
-print("===========================================")
+element_visual_list = []
 
-print("Enter a node's position as x,y")
+print("Enter a node's position as x,y. If you want to create a symmertical node along y-axis enter ',True'\n"
+      + "after node's position, to stop the effect enter ',False'. When finished enter 'done'.")
 print("--------------------------")
-for x in arange(0, number_of_nodes, 1):
-    w,h = input(f"Node {x + 1} position\n").split(",")
-    better_w = float(w)
-    better_h = float(h) 
-    
-    sphere(pos = vec(better_w, better_h, 0))
-    vp.label(pos = vec(better_w, better_h, 0), text = f"{x + 1}", xoffset = 5, yoffset = 10, space = 1, height = 16, 
-             border = 4, font = 'monospace', box = False, opacity = 0, color = 1/255 * vec(255,150,0))
-    list_of_nodes.append(vec(better_w, better_h, 0))
-    print("--------------------------")
+while True:
+    make_symmetric = False
+    k = ""
+
+    try:
+        i,j,k = input(f"Enter node {number_of_nodes + 1}'s position\n").split(",")       
+        node_position = node_creation(float(i), float(j), number_of_nodes)
+        list_of_nodes.append(node_position)
+        number_of_nodes += 1
+        
+        print("here")
+        
+        if k == None:
+            print("Null")
+            
+        if k.lower() == "true":
+           make_symmetric = True
+           node_position = node_creation(-1*float(i), float(j), number_of_nodes)
+           list_of_nodes.append(node_position)  
+           number_of_nodes += 1
+           
+        elif k.lower() == "false":
+            make_symmetric = False
+           
+        elif make_symmetric:
+           make_symmetric = True
+           node_position = node_creation(-1*float(i), float(j), number_of_nodes)
+           list_of_nodes.append(node_position)  
+           number_of_nodes += 1
+           
+        print("--------------------------")
+    except:
+        break
 print("===========================================")
 
 # After all nodes are created this the next thing calculated
 number_of_equations = 2 * number_of_nodes # Total number of equations based on number of nodes, now 3 nodes
-list_of_elements = []
-element_visual_list = []
-list_of_unknowns = [] # based on the amount of memebers
 
-# which nodes do you want to connect?
-
-number_of_current_members = 0
-
-# Method to connect the two choosen nodes and generates Force vector for the element ==========================
-def element_creation(node_number_1, node_number_2):
+# endregion
+#=================================================================
+# region Element method
+def element_creation(node_number_1, node_number_2): # Method to connect the two choosen nodes and generates Force vector for the element
     global number_of_current_members
     
     number_of_current_members += 1
@@ -183,25 +212,32 @@ def element_creation(node_number_1, node_number_2):
     element_AB[node_number_2 * 2 - 1][0] = -1 * y/c # The y transformion for the force on the element AB from B
 
     list_of_elements.append(element_AB)
+# endregion
+#=================================================================
+# region Element Loop
+number_of_current_members = 0
 
 print("Enter an element as node_number,node_number and when finished, enter done.")
 print("--------------------------")
 while True:
     try:
-        q,v = input(f"Enter nodes to create element {number_of_current_members + 1} \n").split(",")
-        better_q = int(q)
-        better_v = int(v)        
-        element_creation(better_q, better_v)
+        q,v = input(f"Enter nodes to create element {number_of_current_members + 1} \n").split(",")       
+        element_creation(int(q), int(v))
         print("--------------------------")
     except:
         break
 print("===========================================")
-
+# endregion
+#=================================================================
+# region Coefficent Matrix Assembly
 master_matrix = np.concatenate((list_of_elements[0], list_of_elements[1]), axis = 1)
 for x in arange(0, len(list_of_elements) - 2, 1):
     master_matrix = np.hstack((master_matrix, list_of_elements[x + 2]))
+# endregion
+#=================================================================
+# region Engineering supports
 
-# Chose where the pin reaction force is
+# region Pin support
 node_location = int(input("Enter node pin reaction\n"))
 node_pin_reaction = list_of_nodes[node_location - 1]
 
@@ -213,8 +249,9 @@ pin_reactions = np.zeros( (number_of_equations, 1) ) # Creates an empty matrix w
 pin_reactions[node_location * 2 - 1][0] = 1 # The y transformion for the force on pin
 master_matrix = np.hstack((master_matrix, pin_reactions))
 print("===========================================")
+# endregion
 
-# Chose where the roller reaction force is
+# region Roller reaction force is
 node_location = int(input("Enter node roller reaction\n"))
 node_roller_reaction = list_of_nodes[node_location - 1]
 roller_support = vp.sphere(pos = node_roller_reaction - vec(0 , 0.1 + 0.1, 0), radius=0.1,
@@ -224,9 +261,9 @@ roller_support = vp.sphere(pos = node_roller_reaction - vec(0 , 0.1 + 0.1, 0), r
 roller_reactions = np.zeros( (number_of_equations, 1) ) # Creates an empty matrix where num of eqs is the number of rows, 1 is colum
 roller_reactions[node_location * 2 - 1][0] = 1 # The x transformion for the force on pin
 coeffeicent_matrix = np.hstack((master_matrix, roller_reactions))
+# endregion
 
-
-# LOOK THIS OVER
+# region Ground creation
 ground = vp.box(pos=roller_support.pos - vp.vec(roller_support.pos.x, roller_support.radius + 0.05, 0), 
                 size=vp.vec(roller_support.pos.x * 2, 0.1 ,2), texture=vp.textures.wood)
 
@@ -234,62 +271,65 @@ pin_support = vp.pyramid(pos = vec(node_pin_reaction.x, ground.pos.y + 0.05, 0),
                          size = vec(node_pin_reaction.y - ground.pos.y , 0.5, 0.5),
                          axis = vec(0, 1, 0), texture = vp.textures.granite)
 print("===========================================")
-#print("Coeffiecent matrix")
-#print(coeffeicent_matrix)
-#print("===========================================")
+# endregion
 
-number_of_forces = int(input("Enter number of applied forces\n")) # Ask for number of nodes
-print("--------------------------")
-
-known_forces = np.zeros( (number_of_equations, 1) ) 
-forces_visual = []
-for x in arange(0, number_of_forces, 1):
-    h = input(f"For force {x + 1} enter node number.\n")
-    better_h = int(h) 
+# endregion
+#=================================================================
+# region Force method
+def force_creation(node_on_which_current_force_acts):    
     
-    node_location = list_of_nodes[better_h - 1]
+    node_location = list_of_nodes[node_on_which_current_force_acts - 1]
     
     force_applied = float(input("Enter force value\n"))
     angle = radians(float(input("Enter angle of force\n")))
 
-    x_1 = force_applied * cos(angle)
+    force_x = force_applied * cos(angle)
+    if abs(force_x) < 0.1000:
+        force_x = 0
     
-    if abs(x_1) < 0.1000:
-        x_1 = 0
+    force_y = force_applied * sin(angle)
+    if abs(force_y) < 0.1000:
+        force_y = 0
     
-    y = force_applied * sin(angle)
+    position = vec(force_x, force_y, 0)
     
-    if abs(y) < 0.1000:
-        y = 0
+    offset_from_tail = node_location + hat(position)
     
-    position = vec(x_1, y, 0)
-    #print(position)
+    vp.arrow(pos = offset_from_tail, axis = node_location - offset_from_tail, color = 1/255 * vec(236, 215, 16), opacity = 0.75)
     
-    bp = node_location + hat(position)
-    
-    forces_visual.append(vp.arrow(pos = bp, axis = node_location - bp,
-                                  color = 1/255 * vec(112, 41, 99), opacity = 0.75))
-    #vp.label(pos = bp * 1.05, text = '<i>F</i>', height = 16, border = 4, font = 'monospace', 
-    #         line = False, opacity = 0, box = False, color = 1/255 * vec(112, 41, 99))
-    
-    #print(forces_visual[x].pos)
-    #print(forces_visual[x].axis)
+    return position
+# endregion
+#=================================================================
+# region Force Loop
+number_of_forces = 0
+known_forces = np.zeros( (number_of_equations, 1) )
 
-    
-    known_forces[better_h * 2 - 2][0] = 1 * x_1 # The x transformion for the force on the element AB from A
-    known_forces[better_h * 2 - 1][0] = 1 * y # The y transformion for the force on the element AB from A
-    print("--------------------------")
-#print("Known forces matrix")
-#print(known_forces)
+while True:
+    make_symmetric = False
+    k = "i love weeb"
+
+    try:
+        i = int(input(f"Enter node on which force {number_of_forces + 1} acts.\n"))       
+        force = node_position = force_creation(i)
+        known_forces[i * 2 - 2][0] = 1 * force.x # The x transformion for the force on the element AB from A
+        known_forces[i * 2 - 1][0] = 1 * force.y # The y transformion for the force on the element AB from A
+        number_of_forces += 1
+           
+        print("--------------------------")
+    except:
+        break
 print("===========================================")
-
+# endregion
+#=================================================================
+# region Matrix Solution 
 print("Solution Matrix")
 
-unknown_forces = (np.linalg.inv(coeffeicent_matrix)).dot(known_forces)
-
+unknown_forces = (np.linalg.inv(coeffeicent_matrix)).dot(known_forces)  
 print(unknown_forces)
 print("===========================================")
-
+# endregion 
+#=================================================================
+# region Post Solution
 max_pos_force = np.amax(unknown_forces)
 max_neg_force = np.amin(unknown_forces)
 
@@ -299,10 +339,10 @@ for x in arange(0, np.size(unknown_forces) - 3, 1):
     
     if  force > 0 and force > 0.000001:
         element_visual_list[x].color = force/max_pos_force * vec(0.8, 0, 0)
-        print(f'Element {x + 1} has a force of {force_abs:.3f} and is in tension.')
+        print(f'Element {x + 1} has a force of {force_abs:.2f} and is in tension.')
     elif force < 0 and force < -0.000001:
         element_visual_list[x].color = force/max_neg_force * vec(0, 0, 0.8)
-        print(f'Element {x + 1} has a force of {force_abs:.3f} and is in compression.')
+        print(f'Element {x + 1} has a force of {force_abs:.2f} and is in compression.')
     else:
         print(f'Element {x + 1} is a zero force memeber.')
 
@@ -311,5 +351,5 @@ text_1 = vp.wtext(text = "Blue elements mean in compression\n")
 text_2 = vp.wtext(text = "Red elements mean in tension")
 
 vp.sleep(5000) # testing again
-
 sys.exit(0)
+# endregion
