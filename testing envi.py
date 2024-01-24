@@ -127,41 +127,23 @@ list_of_unknowns = [] # based on the amount of memebers
 
 element_visual_list = []
 
-print("Enter a node's position as x,y. If you want to create a symmertical node along y-axis enter ',True'\n"
-      + "after node's position, to stop the effect enter ',False'. When finished enter 'done'.")
+
+# region here is where we intergrate the UI
 print("--------------------------")
 while True:
-    make_symmetric = False
-    k = ""
-
     try:
-        i,j = input(f"Enter node {number_of_nodes + 1}'s position\n").split(",")       
-        node_position = node_creation(float(i), float(j), number_of_nodes)
-        list_of_nodes.append(node_position)
-        number_of_nodes += 1
+        i,j = input(f"Enter node {number_of_nodes + 1}'s position\n").split(",")
+               
+        list_of_nodes.append(node_creation(float(i), float(j), number_of_nodes))
         
-       # if k == None:
-          #  print("Null")
-            
-        #if k.lower() == "true":
-           #make_symmetric = True
-           #node_position = node_creation(-1*float(i), float(j), number_of_nodes)
-           #list_of_nodes.append(node_position)  
-           #number_of_nodes += 1
-           
-        #elif k.lower() == "false":
-            #make_symmetric = False
-           
-        #elif make_symmetric:
-          # make_symmetric = True
-           #node_position = node_creation(-1*float(i), float(j), number_of_nodes)
-           #list_of_nodes.append(node_position)  
-           #number_of_nodes += 1
+        number_of_nodes += 1
            
         print("--------------------------")
     except:
         break
 print("===========================================")
+##############################################
+# endregion
 
 # After all nodes are created this the next thing calculated
 number_of_equations = 2 * number_of_nodes # Total number of equations based on number of nodes, now 3 nodes
